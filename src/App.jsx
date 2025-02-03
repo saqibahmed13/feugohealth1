@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
-import Excel from "./components/excel";
-import Addon from "./components/addon";
-// import Home from "./components/Home"
+import System from "./components/System";
+import Addon from "./components/Addon";
+import Home from "./components/Home";
+import Customer from "./components/Customer";
+import { Router,Routes, Route } from "react-router-dom";
+
 
 function App() {
+  // const [setButton, setActiveButton] = useState('');
   const [step, setStep] = useState(1);
   const [systemItems, setSystemItems] = useState([]);
   const [addOnItems, setAddOnItems] = useState([
@@ -36,8 +40,15 @@ function App() {
 
   return (
     <>
-      {step === 1 && (
-        <Excel
+    <div className="fuedohealth">
+    {/* <Router>
+      <Routes>
+        <Route path="/" element={<Home setActiveButton={setActiveButton} />} />
+        <Route path="/customer" element={<Customer />} />
+      </Routes>
+    </Router> */}
+    {step === 1 && (
+        <System
           systemItems={systemItems}
           setSystemItems={handleSystemItemsUpdate}
           handleNext={handleNextFromExcel}
@@ -52,6 +63,8 @@ function App() {
           setSystemItems={handleSystemItemsUpdate}
         />
       )}
+    </div>
+      
     </>
   )
 }

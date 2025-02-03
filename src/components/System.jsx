@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import excelData from '../assets/data.xlsx';
 import readXlsxFile from 'read-excel-file';
 import SelectSearch from 'react-select-search';
-import 'react-select-search/style.css';
+// import 'react-select-search/style.css';
+import "./System.css";
 
-const Excel = ({ systemItems, setSystemItems, handleNext }) => {
+
+const System = ({ systemItems, setSystemItems, handleNext }) => {
     
     const [rows, setRows] = useState([]);
     const [systems, setSystems] = useState([]);
@@ -148,117 +150,19 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
         setItems(newItems);
     };
 
-    // Inline styles
-    const styles = {
-        container: {
-            padding: '16px',
-            fontFamily: 'Arial, sans-serif',
-        },
-        title: {
-            fontSize: '24px',
-            fontWeight: 'bold',
-            marginBottom: '16px',
-            color: '#333',
-        },
-        itemContainer: {
-            marginBottom: '24px',
-            borderBottom: '1px solid #ccc',
-            paddingBottom: '16px',
-        },
-        itemTitle: {
-            fontSize: '20px',
-            fontWeight: '600',
-            marginBottom: '12px',
-            color: '#555',
-        },
-        label: {
-            display: 'block',
-            marginBottom: '8px',
-            fontWeight: '500',
-            color: '#444',
-        },
-        input: {
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            padding: '8px',
-            width: '100%',
-            boxSizing: 'border-box',
-        },
-        select: {
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            padding: '8px',
-            width: '100%',
-            boxSizing: 'border-box',
-        },
-        priceContainer: {
-            marginTop: '16px',
-            padding: '12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            backgroundColor: '#f9f9f9',
-        },
-        priceText: {
-            fontWeight: '600',
-            color: '#222',
-        },
-        button: {
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '4px',
-            color: '#fff',
-            cursor: 'pointer',
-            marginBottom: '16px',
-            marginRight: '8px',
-        },
-        addButton: {
-            backgroundColor: '#007BFF',
-        },
-        generateButton: {
-            backgroundColor: '#28A745',
-        },
-        tableContainer: {
-            marginTop: '32px',
-        },
-        tableTitle: {
-            fontSize: '20px',
-            fontWeight: '600',
-            marginBottom: '16px',
-            color: '#555',
-        },
-        table: {
-            width: '100%',
-            borderCollapse: 'collapse',
-        },
-        th: {
-            padding: '12px',
-            border: '1px solid #ddd',
-            backgroundColor: '#f2f2f2',
-            textAlign: 'left',
-            color: '#333',
-        },
-        td: {
-            padding: '12px',
-            border: '1px solid #ddd',
-            textAlign: 'left',
-        },
-        totalRow: {
-            fontWeight: '600',
-            backgroundColor: '#fafafa',
-        },
-    };
+   
 
     return (
-        <div style={styles.container}>
-            <h1 style={styles.title}>Excel Data Viewer</h1>
+        <div className="container">
+            <h1 className="title">Excel Data Viewer</h1>
 
             {items.map((item, index) => (
-                <div key={index} style={styles.itemContainer}>
-                    <h2 style={styles.itemTitle}>Item {index + 1}</h2>
+                <div key={index} className="item-container">
+                    <h2 className="item-title">Item {index + 1}</h2>
 
                     {/* System Dropdown */}
-                    <div style={{ marginBottom: '16px' }}>
-                        <label htmlFor={`system-select-${index}`} style={styles.label}>Select System:</label>
+                    <div className="dropdown-container">
+                        <label htmlFor={`system-select-${index}`} className="label">Select System:</label>
                         <SelectSearch
                             id={`system-select-${index}`}
                             value={item.selectedSystem}
@@ -271,8 +175,8 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
 
                     {/* Sharing Type Dropdown */}
                     {item.selectedSystem && (
-                        <div style={{ marginBottom: '16px' }}>
-                            <label htmlFor={`sharing-select-${index}`} style={styles.label}>Select Sharing Type:</label>
+                        <div className="dropdown-container">
+                            <label htmlFor={`sharing-select-${index}`} className="label">Select Sharing Type:</label>
                             <SelectSearch
                                 id={`sharing-select-${index}`}
                                 value={item.selectedSharing}
@@ -289,8 +193,8 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
 
                     {/* Dimension Dropdown */}
                     {item.selectedSharing && (
-                        <div style={{ marginBottom: '16px' }}>
-                            <label htmlFor={`dimension-select-${index}`} style={styles.label}>Select Dimension:</label>
+                        <div className="dropdown-container">
+                            <label htmlFor={`dimension-select-${index}`} className="label">Select Dimension:</label>
                             <SelectSearch
                                 id={`dimension-select-${index}`}
                                 value={item.selectedDimension}
@@ -304,14 +208,14 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
 
                     {/* Quantity Input */}
                     {item.selectedDimension && (
-                        <div style={{ marginBottom: '16px' }}>
-                            <label htmlFor={`quantity-input-${index}`} style={styles.label}>Quantity:</label>
+                        <div className="input-container">
+                            <label htmlFor={`quantity-input-${index}`} className="label">Quantity:</label>
                             <input
                                 id={`quantity-input-${index}`}
                                 type="number"
                                 value={item.quantity}
                                 onChange={(e) => updateQuantity(index, e.target.value)}
-                                style={styles.input}
+                                className="input"
                                 min="1"
                             />
                         </div>
@@ -319,8 +223,8 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
 
                     {/* Display Price */}
                     {item.price !== null && (
-                        <div style={styles.priceContainer}>
-                            <p style={styles.priceText}>
+                        <div className="price-container">
+                            <p className="price-text">
                                 <strong>Total Price:</strong> {item.price}
                             </p>
                         </div>
@@ -329,71 +233,62 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
             ))}
 
             {/* Add More Button */}
-            <button
-                onClick={addItem}
-                style={{ ...styles.button, ...styles.addButton }}
-            >
+            <button onClick={addItem} className="button add-button">
                 Add More
             </button>
 
             {/* Next Button */}
             {items.some((item) => item.price !== null) && (
-                <button
-                    onClick={handleNext}
-                    style={{ ...styles.button, ...styles.generateButton }}
-                >
+                <button onClick={handleNext} className="button generate-button">
                     Next
                 </button>
             )}
 
             {/* Generate Quotation Button */}
             {items.some(item => item.price !== null) && (
-                <button
-                    onClick={() => setShowQuotation(true)}
-                    style={{ ...styles.button, ...styles.generateButton }}
-                >
+                <button onClick={() => setShowQuotation(true)} className="button generate-button">
                     Generate Quotation
                 </button>
             )}
 
             {/* Quotation Table */}
             {showQuotation && (
-                <div style={styles.tableContainer}>
-                    <h2 style={styles.tableTitle}>Quotation</h2>
-                    <table style={styles.table}>
+                <div className="table-container">
+                    <h2 className="table-title">Quotation</h2>
+                    <table className="table">
                         <thead>
                             <tr>
-                                <th style={styles.th}>Item</th>
-                                <th style={styles.th}>System</th>
-                                <th style={styles.th}>Sharing Type</th>
-                                <th style={styles.th}>Dimension</th>
-                                <th style={styles.th}>Quantity</th>
-                                <th style={styles.th}>Price</th>
+                                <th className="th">Item</th>
+                                <th className="th">System</th>
+                                <th className="th">Sharing Type</th>
+                                <th className="th">Dimension</th>
+                                <th className="th">Quantity</th>
+                                <th className="th">Price</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.map((item, index) => item.price !== null && (
                                 <tr key={index}>
-                                    <td style={styles.td}>{index + 1}</td>
-                                    <td style={styles.td}>{item.selectedSystem}</td>
-                                    <td style={styles.td}>{item.selectedSharing}</td>
-                                    <td style={styles.td}>{item.selectedDimension}</td>
-                                    <td style={styles.td}>
+                                    <td className="td">{index + 1}</td>
+                                    <td className="td">{item.selectedSystem}</td>
+                                    <td className="td">{item.selectedSharing}</td>
+                                    <td className="td">{item.selectedDimension}</td>
+                                    <td className="td">
                                         <input
                                             type="number"
                                             value={item.quantity}
                                             onChange={(e) => updateQuantity(index, e.target.value)}
-                                            style={styles.input}
+                                            className="input"
                                             min="1"
                                         />
                                     </td>
-                                    <td style={styles.td}>{item.price}</td>
+                                    <td className="td">{item.price}</td>
                                 </tr>
                             ))}
                             {/* Total Price */}
-                            <tr style={styles.totalRow}>
-                                <td style={styles.td} colSpan="5">Total:</td>
-                                <td style={styles.td}>
+                            <tr className="total-row">
+                                <td className="td" colSpan="5">Total:</td>
+                                <td className="td">
                                     {items.reduce((total, item) => total + (item.price || 0), 0)}
                                 </td>
                             </tr>
@@ -405,4 +300,4 @@ const Excel = ({ systemItems, setSystemItems, handleNext }) => {
     );
 }
 
-export default Excel;
+export default System;

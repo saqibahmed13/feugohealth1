@@ -10,32 +10,7 @@ import SelectSearch from 'react-select-search';
 export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, handleBack }) {
   const [components, setComponents] = useState({});
   const [showQuotation, setShowQuotation] = useState(false);
-  console.log("systemItems", systemItems)
-
- // Load data from localStorage
-  useEffect(() => {
-    const storedSystemItems = JSON.parse(localStorage.getItem('systemItems'));
-    const storedAddOnItems = JSON.parse(localStorage.getItem('addOnItems'));
-    
-    if (storedSystemItems) {
-      setSystemItems(storedSystemItems);
-    }
-    
-    if (storedAddOnItems) {
-      setAddOnItems(storedAddOnItems);
-    }
-  }, [setSystemItems, setAddOnItems]);
-
-  // // Save data to localStorage whenever systemItems or addOnItems change
-  // useEffect(() => {
-  //   if (systemItems) {
-  //     localStorage.setItem('systemItems', JSON.stringify(systemItems));
-  //   }
-  //   if (addOnItems) {
-  //     localStorage.setItem('addOnItems', JSON.stringify(addOnItems));
-  //   }
-  // }, [systemItems, addOnItems]);
-  
+ 
 
   // Fetch and parse the Excel data
   async function fetchData() {
@@ -358,19 +333,42 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
   };
 
   const addItem = () => {
-    setAddOnItems([
-      ...addOnItems,
-      {
-        selectedCategory: '',
-        selectedSubCategory: '',
-        selectedItem: '',
-        selectedSize: '',
-        selectedOption: '',
-        selectedDiameter: '',
-        quantity: 1,
-        price: null,
-      },
-    ]);
+    if (addOnItems.length === 0) {
+      // Allow adding the first item without validation
+      setAddOnItems([
+        ...addOnItems,
+        {
+          selectedCategory: '',
+          selectedSubCategory: '',
+          selectedItem: '',
+          selectedSize: '',
+          selectedOption: '',
+          selectedDiameter: '',
+          quantity: 1,
+          price: null,
+        },
+      ]);
+    } else {
+      // Check if the last item is fully completed before adding a new one
+      const lastItem = addOnItems[addOnItems.length - 1];
+      if (lastItem.selectedCategory && lastItem.selectedItem && lastItem.quantity && lastItem.price !== null) {
+        setAddOnItems([
+          ...addOnItems,
+          {
+            selectedCategory: '',
+            selectedSubCategory: '',
+            selectedItem: '',
+            selectedSize: '',
+            selectedOption: '',
+            selectedDiameter: '',
+            quantity: 1,
+            price: null,
+          },
+        ]);
+      } else {
+        alert(`Please add Item ${addOnItems.length} before adding Item ${addOnItems.length + 1}`);
+      }
+    }
   };
 
   const handleGenerateQuotation = () => {
@@ -542,10 +540,11 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
     return [];
   };
 
+
   return (
   
     <div style={styles.container}>
-      <h1 style={styles.title}>Add-On Items</h1>
+      <h1 style={styles.title} >Add-On Items</h1>
 
  
       {!showQuotation && (
