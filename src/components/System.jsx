@@ -162,7 +162,9 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
         <div className="container">
             <h1 className="title">Excel Data Viewer</h1>
 
-            {items.map((item, index) => (
+            {!showQuotation && (
+                <>
+                {items.map((item, index) => (
                 <div key={index} className="item-container">
                     <h2 className="item-title">Item {index + 1}</h2>
 
@@ -236,7 +238,9 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
                         </div>
                     )}
                 </div>
-            ))}
+            ))} 
+            
+               
 
             {/* Add More Button */}
             <button onClick={addItem} className="button add-button">
@@ -256,6 +260,8 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
                     Generate Quotation
                 </button>
             )}
+            </> 
+        )} 
 
             {/* Quotation Table */}
             {showQuotation && (
@@ -304,6 +310,6 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
             )}
         </div>
     );
-}
+} 
 
 export default System;
