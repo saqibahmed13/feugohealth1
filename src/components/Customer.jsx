@@ -45,7 +45,7 @@ export default function Customer() {
           className="p-2 border border-gray-300 rounded"
         />
         <button
-          type="submit"
+          type="submit" onClick={onSubmit}
           className="p-2 bg-yellow-500 text-white rounded cursor-pointer hover:bg-yellow-400"
         >
           Next

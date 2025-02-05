@@ -5,11 +5,18 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import 'react-select-search/style.css';
 import SelectSearch from 'react-select-search';
+import { useNavigate } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
 export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, handleBack }) {
   const [components, setComponents] = useState({});
   const [showQuotation, setShowQuotation] = useState(false);
+  const navigate = useNavigate();
+
+  const onSubmit = (data) => {
+    console.log(data);
+    navigate("/addon"); 
+  };
  
 
   // Fetch and parse the Excel data
@@ -723,13 +730,13 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
           })}
 
           {/* Add More Button and Navigation Buttons */}
-          <button style={{ ...styles.button, ...styles.addButton }} onClick={addItem}>
+          <button   style={{ ...styles.button, ...styles.addButton, background:"orange" }} onClick={addItem}>
             Add More
           </button>
           <div style={{ marginTop: '16px' }}>
-            <button style={{ ...styles.button, backgroundColor: '#6c757d' }} onClick={handleBack}>
+            {/* <button style={{ ...styles.button, backgroundColor: '#6c757d' }} onClick={handleBack}>
               Back
-            </button>
+            </button> */}
             {addOnItems.length > 0 && (
               <button style={{ ...styles.button, ...styles.generateButton }} onClick={handleGenerateQuotation}>
                 Generate Quotation

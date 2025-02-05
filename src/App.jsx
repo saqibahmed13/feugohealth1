@@ -1,13 +1,11 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import System from "./components/System";
 import Addon from "./components/Addon";
 import Home from "./components/Home";
 import Customer from "./components/Customer";
-import { Router,Routes, Route } from "react-router-dom";
-
 
 function App() {
-  // const [setButton, setActiveButton] = useState('');
   const [step, setStep] = useState(1);
   const [systemItems, setSystemItems] = useState([]);
   const [addOnItems, setAddOnItems] = useState([
@@ -19,53 +17,46 @@ function App() {
     },
   ]);
 
-
   const handleSystemItemsUpdate = (items) => {
     setSystemItems(items);
-    localStorage.setItem('systemItems', JSON.stringify(items));
+    localStorage.setItem("systemItems", JSON.stringify(items));
   };
 
   const handleAddOnItemsUpdate = (items) => {
     setAddOnItems(items);
-    localStorage.setItem('addOnItems', JSON.stringify(items));
-  };
-
-  const handleNextFromExcel = () => {
-    setStep(2);
-  };
-
-  const handleBackToExcel = () => {
-    setStep(1);
+    localStorage.setItem("addOnItems", JSON.stringify(items));
   };
 
   return (
-    <>
-    <div className="fuedohealth">
-    {step === 1 && (
-        <System
-          systemItems={systemItems}
-          setSystemItems={handleSystemItemsUpdate}
-          handleNext={handleNextFromExcel}
-        />
-      )}
-      {step === 2 && (
-        <Addon
-          systemItems={systemItems}
-          addOnItems={addOnItems}
-          setAddOnItems={handleAddOnItemsUpdate}
-          handleBack={handleBackToExcel}
-          setSystemItems={handleSystemItemsUpdate}
-        />
-      )}
-    </div>
-      
-    </>
-  )
+    <Router>
+      <div className="fuedohealth">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/customer" element={<Customer />} />
+          <Route 
+            path="/system" 
+            element={
+              <System 
+                systemItems={systemItems} 
+                setSystemItems={handleSystemItemsUpdate} 
+                handleNext={() => setStep(2)} 
+              />
+            } 
+          />
+          <Route 
+            path="/addon" 
+            element={
+              <Addon 
+                systemItems={systemItems} 
+                addOnItems={addOnItems} 
+                setAddOnItems={handleAddOnItemsUpdate} 
+              />
+            } 
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
 
 export default App;
-
-
-
-
-

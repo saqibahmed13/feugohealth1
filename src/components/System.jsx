@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import excelData from '../assets/data.xlsx';
 import readXlsxFile from 'read-excel-file';
 import SelectSearch from 'react-select-search';
+import { useNavigate } from "react-router-dom";
+
 // import 'react-select-search/style.css';
 import "./System.css";
 
@@ -11,6 +13,7 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
     const [rows, setRows] = useState([]);
     const [systems, setSystems] = useState([]);
     const [showQuotation, setShowQuotation] = useState(false);
+    const navigate = useNavigate();
     const [items, setItems] = useState(
         systemItems && systemItems.length > 0
             ? systemItems
@@ -37,6 +40,9 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
         setSystemItems(items);
     }, [items, setSystemItems]);
 
+    const goToAddon = () => {
+        navigate('/addon'); // Navigate to the Addon page
+    };
     async function fetchData() {
         try {
             const response = await fetch(excelData);
@@ -239,7 +245,7 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
 
             {/* Next Button */}
             {items.some((item) => item.price !== null) && (
-                <button onClick={handleNext} className="button generate-button">
+                <button onClick={goToAddon} className="button generate-button">
                     Next
                 </button>
             )}
