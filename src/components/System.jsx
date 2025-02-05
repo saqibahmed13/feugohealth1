@@ -245,7 +245,7 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
 
             {/* Next Button */}
             {items.some((item) => item.price !== null) && (
-                <button onClick={goToAddon} className="button generate-button">
+                <button onClick={() => { goToAddon(); handleNext(); }} className="button generate-button">
                     Next
                 </button>
             )}
