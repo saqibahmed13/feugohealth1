@@ -8,17 +8,15 @@ import SelectSearch from 'react-select-search';
 import { useNavigate } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
-export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, handleBack }) {
+export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, customerDetails }) {
   const [components, setComponents] = useState({});
   const [showQuotation, setShowQuotation] = useState(false);
   const [quotationNumber, setQuotationNumber] = useState(null);
   const navigate = useNavigate();
 
-  const onSubmit = (data) => {
-    console.log(data);
-    navigate("/addon"); 
+  const handleBack = () => {
+    navigate("/system");
   };
- 
 
   // Fetch and parse the Excel data
   async function fetchData() {
@@ -259,7 +257,6 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       }
     }
 
-    console.log("categoryData", categoryData)
     if (selectedCategory === 'Storage') {
       if (selectedSubCategory === 'Partition High Storage' || selectedSubCategory === 'Prelam Pedestal' || selectedSubCategory === 'Storage' || selectedSubCategory === 'Prelam') {
         // Assuming 'items' contains the different storage options
@@ -382,6 +379,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
   const handleGenerateQuotation = () => {
     setShowQuotation(true);
   };
+  
   useEffect(() => {
     if (showQuotation) {
       setQuotationNumber(generateUniqueNumber());
@@ -394,35 +392,52 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
 
 
   const exportToExcel = () => {
+   
     const data = [];
-     // Add Quotation Number
-     data.push([`Quotation Number: ${quotationNumber}`]); 
-     data.push([]); // Empty row for spacing
-    // header
-    data.push(['Type', 'Component/System', 'Size/Option/Diameter', 'Quantity', 'Price']);
 
-    // system items
+    data.push([`QUOTATION NUMBER: ${quotationNumber}`]); 
+    data.push([]); // Empty row for spacing
+
+    // Add Customer Details Header
+    data.push(['CUSTOMER DETAILS']);
+    data.push(['Customer Name:', customerDetails.customerName || '']);
+    data.push(['Date:', customerDetails.date || '']);
+    data.push(['Phone Number:', customerDetails.phoneNumber || '']);
+    data.push(['Location:', customerDetails.location || '']);
+    data.push(['Email:', customerDetails.email || '']);
+    data.push([]); 
+
+    // Combined header for System Items and Add-Ons
+    data.push(['ITEM DETAILS']);
+    data.push(['Type', 'Component/System', 'Size/Option/Diameter', 'Sharing Type', 'Quantity', 'Price']);
+
+    // system items and addOn items in a single table
     systemItems.forEach((item) => {
-      data.push([
-        'System',
-        item.selectedSystem,
-        item.selectedDimension,
-        item.quantity,
-        item.price || 0,
-      ]);
+      if (item.selectedSystem && item.selectedDimension && item.quantity) {
+        data.push([
+          'System',
+          item.selectedSystem,
+          item.selectedDimension,
+          item.selectedSharing || '', // Adding Sharing Type for system items
+          item.quantity,
+          item.price || 0,
+        ]);
+      }
     });
 
-    // addOn items
     addOnItems.forEach((item) => {
-      data.push([
-        'Add-On',
-        item.selectedSubCategory
-          ? `${item.selectedCategory} - ${item.selectedSubCategory} - ${item.selectedItem}`
-          : `${item.selectedCategory} - ${item.selectedItem}`,
-        item.selectedSize || item.selectedOption || item.selectedDiameter || '',
-        item.quantity,
-        item.price || 0,
-      ]);
+      if (item.selectedCategory && item.selectedItem && item.quantity && item.price != null) {
+        data.push([
+          'Add-On',
+          item.selectedSubCategory
+            ? `${item.selectedCategory} - ${item.selectedSubCategory} - ${item.selectedItem}`
+            : `${item.selectedCategory} - ${item.selectedItem}`,
+          getDisplayValue(item),
+          '', // Sharing Type is not applicable for add-ons
+          item.quantity,
+          item.price || 0,
+        ]);
+      }
     });
 
     // grand total
@@ -430,7 +445,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       systemItems.reduce((acc, cur) => acc + (cur.price || 0), 0) +
       addOnItems.reduce((acc, cur) => acc + (cur.price || 0), 0);
 
-    data.push(['', '', '', 'Grand Total', grandTotal]);
+    data.push(['', '', '', '', 'Grand Total', grandTotal]);
 
     // create worksheet/book
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -504,6 +519,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       cursor: 'pointer',
       marginBottom: '16px',
       marginRight: '8px',
+      backgroundColor: '#dc3545',
     },
     addButton: {
       backgroundColor: '#007BFF',
@@ -562,6 +578,32 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
     return [];
   };
 
+  // New helper function to get the display value for Size/Option/Diameter
+  const getDisplayValue = (item) => {
+    if (item.selectedSize) return item.selectedSize;
+    if (item.selectedDiameter) return item.selectedDiameter;
+    if (item.selectedOption) {
+      const catData = item.selectedSubCategory
+        ? components[item.selectedCategory]?.subcategories[item.selectedSubCategory]
+        : components[item.selectedCategory];
+      if (catData) {
+        const options = getOptionLabels(catData);
+        const found = options.find((o) => o.key === item.selectedOption);
+        if (found) return found.label;
+      }
+      return item.selectedOption; // fallback to stored key if not found
+    }
+    return "";
+  };
+
+  const deleteAddonItem = (index) => {
+    if (addOnItems.length > 1) {
+      const updatedItems = addOnItems.filter((_, idx) => idx !== index);
+      setAddOnItems(updatedItems);
+    } else {
+      alert('Cannot delete the default add-on item.');
+    }
+  };
 
   return (
   
@@ -570,196 +612,188 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
 
  
       {!showQuotation && (
-        <>
-          {addOnItems.map((item, index) => {
-            const categoryData = components[item.selectedCategory];
-            const hasSubcategories = categoryData?.subcategories;
-            let subcatData = null;
-            if (item.selectedSubCategory && hasSubcategories) {
-              subcatData = categoryData.subcategories[item.selectedSubCategory];
-            }
+  <>
+    {addOnItems.map((item, index) => {
+      const categoryData = components[item.selectedCategory];
+      const hasSubcategories = categoryData?.subcategories;
+      let subcatData = null;
+      if (item.selectedSubCategory && hasSubcategories) {
+        subcatData = categoryData.subcategories[item.selectedSubCategory];
+      }
 
-            return (
-              <div key={index} style={styles.itemContainer}>
-                <h2 style={styles.itemTitle}>Item {index + 1}</h2>
+      return (
+        <div key={index} style={styles.itemContainer}>
+          <h2 style={styles.itemTitle}>Item {index + 1}</h2>
 
-                {/* Category Select */}
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={styles.label}>Select Category:</label>
-                  <select
-                    style={styles.select}
-                    value={item.selectedCategory}
-                    onChange={(e) => handleItemChange(index, 'selectedCategory', e.target.value)}
-                  >
-                    <option value="">-- Select Category --</option>
-                    {Object.keys(components).map((catKey) => (
-                      <option key={catKey} value={catKey}>
-                        {catKey}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Subcategory Select */}
-                {item?.selectedCategory && hasSubcategories && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={styles.label}>Select Subcategory:</label>
-                    <select
-                      style={styles.select}
-                      value={item?.selectedSubCategory}
-                      onChange={(e) => handleItemChange(index, 'selectedSubCategory', e.target.value)}
-                    >
-                      <option value="">-- Select Subcategory --</option>
-                      {Object.keys(categoryData?.subcategories || {}).map((subKey) => (
-                        <option key={subKey} value={subKey}>
-                          {subKey}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Component/Item Select */}
-                {((item?.selectedCategory && !hasSubcategories && categoryData?.items) ||
-                  (item?.selectedSubCategory && subcatData?.items)) ? (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={styles.label}>Select Component:</label>
-                    <select
-                      style={styles.select}
-                      value={item.selectedItem}
-                      onChange={(e) => handleItemChange(index, 'selectedItem', e.target.value)}
-                    >
-                      <option value="">-- Select Component --</option>
-                      {(subcatData ? subcatData.items : categoryData.items)
-                        .filter(row => {
-                          const headingToExclude = subcatData ? subcatData.heading : categoryData.heading;
-                          const firstColumn = row.componentName ||
-                            row[(subcatData ? subcatData.header : categoryData.header)[0]];
-                          return (
-                            !headingToExclude ||
-                            !firstColumn ||
-                            firstColumn.toLowerCase().trim() !== headingToExclude.toLowerCase().trim()
-                          );
-                        })
-                        .map((comp, idx) => {
-                          const firstColKey = subcatData
-                            ? subcatData.header?.[0]
-                            : categoryData.header?.[0];
-                          const displayName = comp.componentName || comp[firstColKey] || '';
-                          return (
-                            <option key={idx} value={displayName}>
-                              {displayName}
-                            </option>
-                          );
-                        })}
-                    </select>
-                  </div>
-                ) : null}
-
-                {/* Switch Access -> Gormet Hole: Diameter Select */}
-                {item.selectedCategory === 'Switch Access' &&
-                  item.selectedSubCategory === 'Gormet Hole' &&
-                  item.selectedItem &&
-                  subcatData && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={styles.label}>Select Diameter:</label>
-                      <select
-                        style={styles.select}
-                        value={item.selectedDiameter}
-                        onChange={(e) => handleItemChange(index, 'selectedDiameter', e.target.value)}
-                      >
-                        <option value="">-- Select Diameter --</option>
-                        {subcatData.diameters.map((diam, idx) => (
-                          <option key={idx} value={diam}>
-                            {diam}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                {/* Options Dropdown for other subcategories */}
-                {item.selectedItem &&
-                  ((categoryData?.header?.length > 1 && !subcatData) ||
-                    (subcatData?.header?.length > 1 && (!subcatData.diameters))) && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={styles.label}>Select Option:</label>
-                      <select
-                        style={styles.select}
-                        value={item.selectedOption}
-                        onChange={(e) => handleItemChange(index, 'selectedOption', e.target.value)}
-                      >
-                        <option value="">-- Select Option --</option>
-                        {getOptionLabels(subcatData || categoryData).map(({ key, label }) => (
-                          <option key={key} value={key}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                {/* Size Select for System Components */}
-                {item.selectedCategory === 'System Components' && item.selectedItem && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={styles.label}>Select Size:</label>
-                    <select
-                      style={styles.select}
-                      value={item.selectedSize}
-                      onChange={(e) => handleItemChange(index, 'selectedSize', e.target.value)}
-                    >
-                      <option value="">-- Select Size --</option>
-                      {components['System Components']?.sizes?.map((sizeVal, idx) => (
-                        <option key={idx} value={sizeVal}>
-                          {sizeVal}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Quantity Input */}
-                {item.selectedCategory && item.selectedItem && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={styles.label}>Quantity:</label>
-                    <input
-                      type="number"
-                      style={styles.input}
-                      value={item.quantity}
-                      min={1}
-                      onChange={(e) => updateQuantity(index, e.target.value, 'addon')}
-                    />
-                  </div>
-                )}
-
-                {/* Display Price */}
-                {item.price != null && (
-                  <div style={styles.priceContainer}>
-                    <p style={styles.priceText}>
-                      <strong>Total Price:</strong> {item.price}
-                    </p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Add More Button and Navigation Buttons */}
-          <button   style={{ ...styles.button, ...styles.addButton, background:"orange" }} onClick={addItem}>
-            Add More
-          </button>
-          <div style={{ marginTop: '16px' }}>
-            {/* <button style={{ ...styles.button, backgroundColor: '#6c757d' }} onClick={handleBack}>
-              Back
-            </button> */}
-            {addOnItems.length > 0 && (
-              <button style={{ ...styles.button, ...styles.generateButton }} onClick={handleGenerateQuotation}>
-                Generate Quotation
-              </button>
-            )}
+          {/* Category Select */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={styles.label}>Select Category:</label>
+            <SelectSearch
+              options={Object.keys(components).map((catKey) => ({
+                value: catKey,
+                name: catKey,
+              }))}
+              value={item.selectedCategory}
+              onChange={(value) => handleItemChange(index, 'selectedCategory', value)}
+              search
+              placeholder="-- Select Category --"
+            />
           </div>
-        </>
+
+          {/* Subcategory Select */}
+          {item?.selectedCategory && hasSubcategories && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={styles.label}>Select Subcategory:</label>
+              <SelectSearch
+                options={Object.keys(categoryData?.subcategories || {}).map((subKey) => ({
+                  value: subKey,
+                  name: subKey,
+                }))}
+                value={item?.selectedSubCategory}
+                onChange={(value) => handleItemChange(index, 'selectedSubCategory', value)}
+                search
+                placeholder="-- Select Subcategory --"
+              />
+            </div>
+          )}
+
+          {/* Component/Item Select */}
+          {((item?.selectedCategory && !hasSubcategories && categoryData?.items) ||
+            (item?.selectedSubCategory && subcatData?.items)) ? (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={styles.label}>Select Component:</label>
+              <SelectSearch
+                options={(subcatData ? subcatData.items : categoryData.items)
+                  .filter(row => {
+                    const headingToExclude = subcatData ? subcatData.heading : categoryData.heading;
+                    const firstColumn = row.componentName ||
+                      row[(subcatData ? subcatData.header : categoryData.header)[0]];
+                    return (
+                      !headingToExclude ||
+                      !firstColumn ||
+                      firstColumn.toLowerCase().trim() !== headingToExclude.toLowerCase().trim()
+                    );
+                  })
+                  .map((comp) => {
+                    const firstColKey = subcatData
+                      ? subcatData.header?.[0]
+                      : categoryData.header?.[0];
+                    const displayName = comp.componentName || comp[firstColKey] || '';
+                    return {
+                      value: displayName,
+                      name: displayName,
+                    };
+                  })}
+                value={item.selectedItem}
+                onChange={(value) => handleItemChange(index, 'selectedItem', value)}
+                search
+                placeholder="-- Select Component --"
+              />
+            </div>
+          ) : null}
+
+          {/* Switch Access -> Gormet Hole: Diameter Select */}
+          {item.selectedCategory === 'Switch Access' &&
+            item.selectedSubCategory === 'Gormet Hole' &&
+            item.selectedItem &&
+            subcatData && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={styles.label}>Select Diameter:</label>
+                <SelectSearch
+                  options={subcatData.diameters.map((diam) => ({
+                    value: diam,
+                    name: diam,
+                  }))}
+                  value={item.selectedDiameter}
+                  onChange={(value) => handleItemChange(index, 'selectedDiameter', value)}
+                  search
+                  placeholder="-- Select Diameter --"
+                />
+              </div>
+            )}
+
+          {/* Options Dropdown for other subcategories */}
+          {item.selectedItem &&
+            ((categoryData?.header?.length > 1 && !subcatData) ||
+              (subcatData?.header?.length > 1 && (!subcatData.diameters))) && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={styles.label}>Select Option:</label>
+                <SelectSearch
+                  options={getOptionLabels(subcatData || categoryData).map(({ key, label }) => ({
+                    value: key,
+                    name: label,
+                  }))}
+                  value={item.selectedOption}
+                  onChange={(value) => handleItemChange(index, 'selectedOption', value)}
+                  search
+                  placeholder="-- Select Option --"
+                />
+              </div>
+            )}
+
+          {/* Size Select for System Components */}
+          {item.selectedCategory === 'System Components' && item.selectedItem && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={styles.label}>Select Size:</label>
+              <SelectSearch
+                options={components['System Components']?.sizes?.map((sizeVal) => ({
+                  value: sizeVal,
+                  name: sizeVal,
+                }))}
+                value={item.selectedSize}
+                onChange={(value) => handleItemChange(index, 'selectedSize', value)}
+                search
+                placeholder="-- Select Size --"
+              />
+            </div>
+          )}
+
+          {/* Quantity Input */}
+          {item.selectedCategory && item.selectedItem && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={styles.label}>Quantity:</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={item.quantity}
+                min={1}
+                onChange={(e) => updateQuantity(index, e.target.value, 'addon')}
+              />
+            </div>
+          )}
+
+          {/* Display Price */}
+          {item.price != null && (
+            <div style={styles.priceContainer}>
+              <p style={styles.priceText}>
+                <strong>Total Price:</strong> {item.price}
+              </p>
+            </div>
+          )}
+
+          {addOnItems.length > 1 && (
+            <button onClick={() => deleteAddonItem(index)} style={{...styles.button,  background:"orange"}} >Delete</button>
+          )}
+        </div>
+      );
+    })}
+
+    {/* Add More Button and Navigation Buttons */}
+    <button   style={{ ...styles.button, ...styles.addButton, background:"orange" }} onClick={addItem}>
+      Add More
+    </button>
+    <div style={{ marginTop: '16px' }}>
+      <button style={{ ...styles.button, backgroundColor: '#6c757d' }} onClick={handleBack}>
+        Back
+      </button>
+      {addOnItems.length > 0 && (
+        <button style={{ ...styles.button, ...styles.generateButton }} onClick={handleGenerateQuotation}>
+          Generate Quotation
+        </button>
       )}
+    </div>
+  </>
+)}
 
       {/* Quotation Table */}
       {showQuotation && (
@@ -768,7 +802,6 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
     <table style={styles.table}>
       <thead>
         <tr>
-        
           <th style={styles.th}>Type</th>
           <th style={styles.th}>Component/System</th>
           <th style={styles.th}>Size/Option/Diameter</th>
@@ -777,7 +810,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
         </tr>
       </thead>
       <tbody>
-        {systemItems.map((item, idx) => (
+        {systemItems.filter(item => item.selectedSystem && item.selectedDimension && item.quantity).map((item, idx) => (
           <tr key={`system-${idx}`}>
             <td style={styles.td}>System</td>
             <td style={styles.td}>{item.selectedSystem}</td>
@@ -794,7 +827,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
             <td style={styles.td}>{item.price}</td>
           </tr>
         ))}
-        {addOnItems.map((item, idx) => (
+        {addOnItems.filter(item => item.selectedCategory && item.selectedItem && item.quantity && item.price != null).map((item, idx) => (
           <tr key={`addon-${idx}`}>
             <td style={styles.td}>Add-On</td>
             <td style={styles.td}>
@@ -803,7 +836,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
                 : `${item.selectedCategory} - ${item.selectedItem}`}
             </td>
             <td style={styles.td}>
-              {item.selectedSize || item.selectedOption || item.selectedDiameter || ""}
+              {getDisplayValue(item)}
             </td>
             <td style={styles.td}>
               <input
@@ -827,7 +860,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       </tbody>
     </table>
     <button
-      style={{ ...styles.button, ...styles.exportButton }}
+      style={{ ...styles.button, ...styles.exportButton, marginTop: '10px' }}
       onClick={exportToExcel}
     >
       Export

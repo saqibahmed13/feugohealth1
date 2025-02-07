@@ -121,3 +121,17 @@ td {
 .add-button:hover {
     background-color: #ffa200;
 }
+
+.delete-btn{
+    background-color: #ffa200;
+    margin-top: 5px;
+    padding: 10px;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    border: none;
+    width: 6rem;
+}
+.delete-btn:hover{
+    background-color: #ff8c00;
+}

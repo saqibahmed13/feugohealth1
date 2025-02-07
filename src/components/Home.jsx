@@ -9,7 +9,9 @@ export default function Home({ setActiveButton }) {
           New Quotation
         </h2>
       </Link>
+      <Link to="/">
       <h2 className="bg-orange-400 mr-20 p-20 rounded">Manage Quotation</h2>
+      </Link>
     </div>
   );
 }

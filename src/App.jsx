@@ -1,13 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import System from "./components/System";
-import Addon from "./components/Addon";
 import Home from "./components/Home";
 import Customer from "./components/Customer";
+import Addon from "./components/addon";
 
 function App() {
-  const [step, setStep] = useState(1);
   const [systemItems, setSystemItems] = useState([]);
+  const [customerDetails, setCustomerDetails] = useState({});
+  console.log("customerDetails", customerDetails)
   const [addOnItems, setAddOnItems] = useState([
     {
       selectedComponent: '',
@@ -32,14 +33,13 @@ function App() {
       <div className="fuedohealth">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/customer" element={<Customer />} />
+          <Route path="/customer" element={<Customer setCustomerDetails={setCustomerDetails} />} />
           <Route 
             path="/system" 
             element={
               <System 
                 systemItems={systemItems} 
                 setSystemItems={handleSystemItemsUpdate} 
-                handleNext={() => setStep(2)} 
               />
             } 
           />
@@ -47,9 +47,11 @@ function App() {
             path="/addon" 
             element={
               <Addon 
+                setSystemItems={setSystemItems}
                 systemItems={systemItems} 
                 addOnItems={addOnItems} 
                 setAddOnItems={handleAddOnItemsUpdate} 
+                customerDetails={customerDetails}
               />
             } 
           />

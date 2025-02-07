@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import "./System.css";
 
 
-const System = ({ systemItems, setSystemItems, handleNext }) => {
+const System = ({ systemItems, setSystemItems }) => {
     
     const [rows, setRows] = useState([]);
     const [systems, setSystems] = useState([]);
@@ -30,6 +30,10 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
             ]
     );
 
+    const handleNext = () => {
+        navigate('/addon');
+    };
+
     useEffect(() => {
         if (systemItems && systemItems.length > 0) {
             setItems(systemItems);
@@ -40,9 +44,25 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
         setSystemItems(items);
     }, [items, setSystemItems]);
 
-    const goToAddon = () => {
-        navigate('/addon'); // Navigate to the Addon page
+    const canNavigate = () => {
+        return items.every(item => item.selectedSystem && item.selectedSharing && item.selectedDimension && item.price !== null);
     };
+
+    const goToAddon = () => {
+        if (canNavigate()) {
+            navigate('/addon');
+        }
+    };
+
+    const deleteItem = (index) => {
+        if (items.length > 1) { // Prevent deletion if only one item exists
+            const updatedItems = items.filter((_, idx) => idx !== index);
+            setItems(updatedItems);
+        } else {
+            alert('Cannot delete the default item.');
+        }
+    };
+
     async function fetchData() {
         try {
             const response = await fetch(excelData);
@@ -237,6 +257,10 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
                             </p>
                         </div>
                     )}
+
+                    {items.length > 1 && (
+                        <button onClick={() => deleteItem(index)} className='delete-btn'>Delete</button>
+                    )}
                 </div>
             ))} 
             
@@ -249,7 +273,10 @@ const System = ({ systemItems, setSystemItems, handleNext }) => {
 
             {/* Next Button */}
             {items.some((item) => item.price !== null) && (
-                <button onClick={() => { goToAddon(); handleNext(); }} className="button generate-button">
+                <button onClick={() => { 
+                    goToAddon();
+                 handleNext();
+                }} className="button generate-button">
                     Next
                 </button>
             )}
