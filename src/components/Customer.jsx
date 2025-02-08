@@ -1,9 +1,9 @@
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 
-export default function Customer({ setCustomerDetails }) {
+export default function Customer({ setCustomerDetails, customerDetails }) {
   const navigate = useNavigate();
-
+  const reactLocation = useLocation();
   // Define state for each form field
   const [customerName, setCustomerName] = useState('');
   const [date, setDate] = useState('');
@@ -11,11 +11,26 @@ export default function Customer({ setCustomerDetails }) {
   const [location, setLocation] = useState('');
   const [email, setEmail] = useState('');
 
+  useEffect(() => {
+    if (customerDetails) {
+      setCustomerName(customerDetails.customerName || '');
+      setDate(customerDetails.date || '');
+      setPhoneNumber(customerDetails.phoneNumber || '');
+      setLocation(customerDetails.location || '');
+      setEmail(customerDetails.email || '');
+    }
+  }, [customerDetails]);
+
   const onSubmit = (e) => {
     e.preventDefault(); 
     const data = { customerName, date, phoneNumber, location, email };
+    const navigationState = { customerDetails: data, showQuotation: reactLocation.state?.showQuotation };
     setCustomerDetails(data);
-    navigate("/system");
+    if(reactLocation.state?.showQuotation) {
+      navigate("/addon", { state: navigationState });
+    } else {
+      navigate("/system");
+    }
   };
 
   return (
@@ -38,6 +53,7 @@ export default function Customer({ setCustomerDetails }) {
           value={date}
           onChange={(e) => setDate(e.target.value)}
           className="p-2 border border-gray-300 rounded"
+          min={new Date().toISOString().split("T")[0]}
           required
         />
         <input

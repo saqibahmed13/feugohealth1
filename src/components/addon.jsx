@@ -5,13 +5,12 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import 'react-select-search/style.css';
 import SelectSearch from 'react-select-search';
-import { useLocation,useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
 export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, customerDetails }) {
   const [components, setComponents] = useState({});
   const [showQuotation, setShowQuotation] = useState(false);
-  const [quotationNumber, setQuotationNumber] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,19 +18,9 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
     navigate("/system");
   };
 
-
-
-  useEffect(() => {
-    if (showQuotation) {
-      setQuotationNumber(generateUniqueNumber());
-    }
-  }, [showQuotation]);
-
   const handleHome = () =>{
     navigate("/");
   }
-
-  
 
   // Fetch and parse the Excel data
   async function fetchData() {
@@ -183,8 +172,12 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
   }
 
   useEffect(() => {
+    // Check if navigation state has showQuotation
+    if (location.state?.showQuotation) {
+      setShowQuotation(true);
+    }
     fetchData();
-  }, []);
+  }, [location.state]);
 
   // Recalculate price logic
   const calculatePriceForAddon = (item) => {
@@ -393,13 +386,13 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
 
   const handleGenerateQuotation = () => {
     setShowQuotation(true);
+    setAddOnItems(prev => {
+      return prev.map(item => ({
+        ...item,
+        quotationNumber: generateUniqueNumber()
+      }));
+    });
   };
-  
-  useEffect(() => {
-    if (showQuotation) {
-      setQuotationNumber(generateUniqueNumber());
-    }
-  }, [showQuotation]);
   
   const generateUniqueNumber = () => {
     return Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
@@ -410,7 +403,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
    
     const data = [];
 
-    data.push([`QUOTATION NUMBER: ${quotationNumber}`]); 
+    data.push(['QUOTATION NUMBER:', addOnItems[addOnItems.length - 1]?.quotationNumber ?? 'N/A']); 
     data.push([]); // Empty row for spacing
 
     // Add Customer Details Header
@@ -436,6 +429,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
           item.selectedSharing || '', // Adding Sharing Type for system items
           item.quantity,
           item.price || 0,
+          item.sharingType || '',
         ]);
       }
     });
@@ -812,86 +806,94 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
 
       {/* Quotation Table */}
       {showQuotation && (
-  <div style={styles.tableContainer}>
-    <h2 style={styles.tableTitle}>Quotation No #{quotationNumber}</h2>
-    <table style={styles.table}>
-      <thead>
-        <tr>
-          <th style={styles.th}>Type</th>
-          <th style={styles.th}>Component/System</th>
-          <th style={styles.th}>Size/Option/Diameter</th>
-          <th style={styles.th}>Quantity</th>
-          <th style={styles.th}>Price</th>
-        </tr>
-      </thead>
-      <tbody>
-        {systemItems.filter(item => item.selectedSystem && item.selectedDimension && item.quantity).map((item, idx) => (
-          <tr key={`system-${idx}`}>
-            <td style={styles.td}>System</td>
-            <td style={styles.td}>{item.selectedSystem}</td>
-            <td style={styles.td}>{item.selectedDimension}</td>
-            <td style={styles.td}>
-              <input
-                type="number"
-                style={styles.input}
-                value={item.quantity}
-                min={1}
-                onChange={(e) => updateQuantity(idx, e.target.value, "system")}
-              />
-            </td>
-            <td style={styles.td}>{item.price}</td>
-          </tr>
-        ))}
-        {addOnItems.filter(item => item.selectedCategory && item.selectedItem && item.quantity && item.price != null).map((item, idx) => (
-          <tr key={`addon-${idx}`}>
-            <td style={styles.td}>Add-On</td>
-            <td style={styles.td}>
-              {item.selectedSubCategory
-                ? `${item.selectedCategory} - ${item.selectedSubCategory} - ${item.selectedItem}`
-                : `${item.selectedCategory} - ${item.selectedItem}`}
-            </td>
-            <td style={styles.td}>
-              {getDisplayValue(item)}
-            </td>
-            <td style={styles.td}>
-              <input
-                type="number"
-                style={styles.input}
-                value={item.quantity}
-                min={1}
-                onChange={(e) => updateQuantity(idx, e.target.value, "addon")}
-              />
-            </td>
-            <td style={styles.td}>{item.price}</td>
-          </tr>
-        ))}
-        <tr style={styles.totalRow}>
-          <td style={styles.td} colSpan={4}>Grand Total</td>
-          <td style={styles.td}>
-            {systemItems.reduce((sum, i) => sum + (i.price || 0), 0) +
-              addOnItems.reduce((sum, i) => sum + (i.price || 0), 0)}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <button
-      style={{ ...styles.button, ...styles.exportButton, marginTop: '10px' }}
-      onClick={exportToExcel}
-    >
-      Export
-    </button>
-    <button
-      style={{ ...styles.button, ...styles.exportButton }}
-      onClick={() => setShowQuotation(false)}
-    >
-      Back
-    </button>
-    <button
-    style={{ ...styles.button, ...styles.exportButton }}
-    onClick={() => handleHome()}>
-      Home
-    </button>
-  </div>
+        <div style={styles.tableContainer}>
+          <h2 style={styles.tableTitle}>Quotation No #{addOnItems[addOnItems.length - 1].quotationNumber}</h2>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Component/System</th>
+                <th style={styles.th}>Size/Option/Diameter</th>
+                <th style={styles.th}>Quantity</th>
+                <th style={styles.th}>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {systemItems.filter(item => item.selectedSystem && item.selectedDimension && item.quantity).map((item, idx) => (
+                <tr key={`system-${idx}`}>
+                  <td style={styles.td}>System</td>
+                  <td style={styles.td}>{item.selectedSystem}</td>
+                  <td style={styles.td}>{item.selectedDimension} - {item.selectedSharing}</td>
+                  <td style={styles.td}>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      value={item.quantity}
+                      min={1}
+                      onChange={(e) => updateQuantity(idx, e.target.value, "system")}
+                    />
+                  </td>
+                  <td style={styles.td}>{item.price}</td>
+                </tr>
+              ))}
+              {addOnItems.filter(item => item.selectedCategory && item.selectedItem && item.quantity && item.price != null).map((item, idx) => (
+                <tr key={`addon-${idx}`}>
+                  <td style={styles.td}>Add-On</td>
+                  <td style={styles.td}>
+                    {item.selectedSubCategory
+                      ? `${item.selectedCategory} - ${item.selectedSubCategory} - ${item.selectedItem}`
+                      : `${item.selectedCategory} - ${item.selectedItem}`}
+                  </td>
+                  <td style={styles.td}>
+                    {getDisplayValue(item)}
+                  </td>
+                  <td style={styles.td}>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      value={item.quantity}
+                      min={1}
+                      onChange={(e) => updateQuantity(idx, e.target.value, "addon")}
+                    />
+                  </td>
+                  <td style={styles.td}>{item.price}</td>
+                </tr>
+              ))}
+              <tr style={styles.totalRow}>
+                <td style={styles.td} colSpan={4}>Grand Total</td>
+                <td style={styles.td}>
+                  {systemItems.reduce((sum, i) => sum + (i.price || 0), 0) +
+                    addOnItems.reduce((sum, i) => sum + (i.price || 0), 0)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <button
+            style={{ ...styles.button, ...styles.exportButton, marginTop: '10px' }}
+            onClick={exportToExcel}
+          >
+            Export
+          </button>
+          {!showQuotation && (
+          <button
+            style={{ ...styles.button, ...styles.exportButton }}
+            onClick={() => setShowQuotation(false)}
+          >
+            Back
+          </button>
+          )}
+          <button
+            style={{ ...styles.button, ...styles.exportButton }}
+            onClick={() => navigate('/system')}
+          >
+            Edit
+          </button>
+          <button
+          style={{ ...styles.button, ...styles.exportButton }}
+          onClick={() => handleHome()}>
+            Home
+          </button>
+        </div>
 )} 
     </div>
   );

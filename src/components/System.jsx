@@ -3,13 +3,15 @@ import excelData from '../assets/data.xlsx';
 import readXlsxFile from 'read-excel-file';
 import SelectSearch from 'react-select-search';
 import { useNavigate } from "react-router-dom";
-
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 // import 'react-select-search/style.css';
 import "./System.css";
 
 
-const System = ({ systemItems, setSystemItems }) => {
-    
+const System = ({ systemItems, setSystemItems, customerDetails }) => {
+   
+
     const [rows, setRows] = useState([]);
     const [systems, setSystems] = useState([]);
     const [showQuotation, setShowQuotation] = useState(false);
@@ -26,6 +28,7 @@ const System = ({ systemItems, setSystemItems }) => {
                     quantity: 1,
                     unitPrice: null,
                     price: null,
+                    quotationNumber: null,
                 },
             ]
     );
@@ -42,7 +45,7 @@ const System = ({ systemItems, setSystemItems }) => {
 
     useEffect(() => {
         setSystemItems(items);
-    }, [items, setSystemItems]);
+    }, [items]);
 
     const canNavigate = () => {
         return items.every(item => item.selectedSystem && item.selectedSharing && item.selectedDimension && item.price !== null);
@@ -58,6 +61,7 @@ const System = ({ systemItems, setSystemItems }) => {
         if (items.length > 1) { // Prevent deletion if only one item exists
             const updatedItems = items.filter((_, idx) => idx !== index);
             setItems(updatedItems);
+            setSystemItems(updatedItems);
         } else {
             alert('Cannot delete the default item.');
         }
@@ -163,6 +167,11 @@ const System = ({ systemItems, setSystemItems }) => {
         }
     };
 
+    const generateUniqueNumber = () => {
+        return Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
+      };
+    
+     
     const updateQuantity = (index, value) => {
         const newItems = [...items];
         const newQuantity = Math.max(1, parseInt(value) || 1);
@@ -176,6 +185,52 @@ const System = ({ systemItems, setSystemItems }) => {
         setItems(newItems);
     };
 
+    const exportToExcel = () => {
+        const data = [];
+    
+        data.push(['QUOTATION NUMBER:', systemItems[systemItems.length - 1]?.quotationNumber ?? 'N/A']); 
+        data.push([]); // Empty row for spacing
+    
+        // Add Customer Details Header
+        data.push(['CUSTOMER DETAILS']);
+        data.push(['Customer Name:', customerDetails.customerName || '']);
+        data.push(['Date:', customerDetails.date || '']);
+        data.push(['Phone Number:', customerDetails.phoneNumber || '']);
+        data.push(['Location:', customerDetails.location || '']);
+        data.push(['Email:', customerDetails.email || '']);
+        data.push([]); 
+    
+        // Combined header for System Items and Add-Ons
+        data.push(['ITEM DETAILS']);
+        data.push(['Type', 'Component/System', 'Size/Option/Diameter', 'Sharing Type', 'Quantity', 'Price']);
+    
+        // system items and addOn items in a single table
+        systemItems.forEach((item) => {
+          if (item.selectedSystem && item.selectedDimension && item.quantity) {
+            data.push([
+              'System',
+              item.selectedSystem,
+              item.selectedDimension,
+              item.selectedSharing || '', // Adding Sharing Type for system items
+              item.quantity,
+              item.price || 0,
+            ]);
+          }
+        });
+    
+        // Calculate grand total
+        const grandTotal = systemItems.reduce((acc, cur) => acc + (cur.price || 0), 0);
+    
+        data.push(['', '', '', '', 'Grand Total', grandTotal]);
+    
+        // create worksheet/book
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Quotation');
+    
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'quotation.xlsx');
+    };
    
 
     return (
@@ -282,11 +337,19 @@ const System = ({ systemItems, setSystemItems }) => {
             )}
 
             {/* Generate Quotation Button */}
-            {items.some(item => item.price !== null) && (
-                <button onClick={() => setShowQuotation(true)} className="button generate-button">
+            {/* {items.some(item => item.price !== null) && (
+                <button onClick={() => {
+                    setShowQuotation(true);
+                    setSystemItems(prev => {
+                        return prev.map(item => ({
+                            ...item,
+                            quotationNumber: generateUniqueNumber()
+                        }));
+                    });
+                }} className="button generate-button">
                     Generate Quotation
                 </button>
-            )}
+            )} */}
             </> 
         )} 
 
@@ -294,6 +357,7 @@ const System = ({ systemItems, setSystemItems }) => {
             {showQuotation && (
                 <div className="table-container">
                     <h2 className="table-title">Quotation</h2>
+                    <h2>Quotation No #{systemItems[systemItems?.length - 1]?.quotationNumber}</h2>
                     <table className="table">
                         <thead>
                             <tr>
@@ -333,6 +397,14 @@ const System = ({ systemItems, setSystemItems }) => {
                             </tr>
                         </tbody>
                     </table>
+                    <button onClick={exportToExcel}>
+                        Export
+                    </button>
+                    {!showQuotation && (
+                        <button onClick={() => setShowQuotation(false)}>Back</button>
+                    )}
+                    <button onClick={() => navigate('/system')}>Edit</button>
+                    <button onClick={() => navigate('/')}>Home</button>
                 </div>
             )}
         </div>
