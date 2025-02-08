@@ -5,7 +5,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import 'react-select-search/style.css';
 import SelectSearch from 'react-select-search';
-import { useNavigate } from 'react-router-dom';
+import { useLocation,useNavigate } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
 export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, customerDetails }) {
@@ -13,10 +13,25 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
   const [showQuotation, setShowQuotation] = useState(false);
   const [quotationNumber, setQuotationNumber] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleBack = () => {
     navigate("/system");
   };
+
+
+
+  useEffect(() => {
+    if (showQuotation) {
+      setQuotationNumber(generateUniqueNumber());
+    }
+  }, [showQuotation]);
+
+  const handleHome = () =>{
+    navigate("/");
+  }
+
+  
 
   // Fetch and parse the Excel data
   async function fetchData() {
@@ -870,6 +885,11 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       onClick={() => setShowQuotation(false)}
     >
       Back
+    </button>
+    <button
+    style={{ ...styles.button, ...styles.exportButton }}
+    onClick={() => handleHome()}>
+      Home
     </button>
   </div>
 )} 
