@@ -1,70 +1,96 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import System from "./components/System";
 import Home from "./components/Home";
 import Customer from "./components/Customer";
-import Addon from "./components/addon";
+import Addon from "./components/Addon";
+import ManageQuotations from "./components/ManageQuotations";
 
 function App() {
-  const [systemItems, setSystemItems] = useState([{
-    selectedSystem: '',
-    selectedSharing: '',
-    dimensions: [],
-    selectedDimension: '',
-    quantity: 1,
-    unitPrice: null,
-    price: null,
-    quotationNumber: null,
-  }]);
-  const [customerDetails, setCustomerDetails] = useState({});
-  const [activeButton, setActiveButton] = useState('/customer');
-  const [addOnItems, setAddOnItems] = useState([
-    {
-      selectedComponent: '',
-      selectedSize: '',
-      quantity: 1,
-      price: null,
-      quotationNumber: null,
-    },
-  ]);
-
-  const handleSystemItemsUpdate = (items) => {
-    setSystemItems(items);
-    localStorage.setItem("systemItems", JSON.stringify(items));
+  const [customers, setCustomers] = useState(() => {
+    const localData = localStorage.getItem('customers');
+    return localData ? JSON.parse(localData) : [{
+      customerDetails: {},
+      systemItems: [
+        { id: 1, selectedSystem: '', selectedSharing: '', selectedDimension: '', quantity: 1, price: 0 }
+      ],
+      addOnItems: [
+        { id: 1, selectedCategory: '', selectedItem: '', quantity: 1, price: 0 }
+      ],
+      quotationNumber: null, 
+    }];
+  });
+  const [activeCustomerIndex, setActiveCustomerIndex] = useState(null); 
+  const [editingQuotation, setEditingQuotation] = useState(false); 
+  
+  const handleCustomerUpdate = (index, updatedCustomer) => {
+    const newCustomers = [...customers];
+    newCustomers[index] = updatedCustomer;
+    setCustomers(newCustomers);
   };
 
-  const handleAddOnItemsUpdate = (items) => {
-    setAddOnItems(items);
-    localStorage.setItem("addOnItems", JSON.stringify(items));
-  };
+  useEffect(() => {
+    localStorage.setItem('customers', JSON.stringify(customers));
+  }, [customers]);
 
   return (
     <Router>
       <div className="fuedohealth">
         <Routes>
-          <Route path="/" element={<Home setActiveButton={setActiveButton} />} />
-          <Route path="/customer" element={<Customer setCustomerDetails={setCustomerDetails} customerDetails={customerDetails} />} />
-          <Route 
-            path="/system" 
+          <Route
+            path="/"
             element={
-              <System 
-                systemItems={systemItems} 
-                setSystemItems={handleSystemItemsUpdate} 
-                customerDetails={customerDetails}
+              <Home
+                setActiveCustomerIndex={setActiveCustomerIndex}
+                customers={customers}
+                setEditingQuotation={setEditingQuotation}
               />
-            } 
+            }
           />
-          <Route 
-            path="/addon" 
+          <Route
+            path="/customer"
             element={
-              <Addon 
-                setSystemItems={setSystemItems}
-                systemItems={systemItems} 
-                addOnItems={addOnItems} 
-                setAddOnItems={handleAddOnItemsUpdate} 
-                customerDetails={customerDetails}
+              <Customer
+                setCustomers={setCustomers}
+                customers={customers}
+                activeCustomerIndex={activeCustomerIndex}
+                setActiveCustomerIndex={setActiveCustomerIndex}
+                editingQuotation={editingQuotation}
               />
-            } 
+            }
+          />
+          <Route
+            path="/system"
+            element={
+              <System
+                customer={customers[activeCustomerIndex]}
+                handleCustomerUpdate={(updatedCustomer) =>
+                  handleCustomerUpdate(activeCustomerIndex, updatedCustomer)
+                }
+              />
+            }
+          />
+          <Route
+            path="/addon"
+            element={
+              <Addon
+                customer={customers[activeCustomerIndex]}
+                handleCustomerUpdate={(updatedCustomer) =>
+                  handleCustomerUpdate(activeCustomerIndex, updatedCustomer)
+                }
+              />
+            }
+          />
+          <Route
+            path="/manage-quotations"
+            element={
+              <ManageQuotations
+                customers={customers}
+                setCustomers={setCustomers}
+                setActiveCustomerIndex={setActiveCustomerIndex}
+                setEditingQuotation={setEditingQuotation}
+              />
+            }
           />
         </Routes>
       </div>

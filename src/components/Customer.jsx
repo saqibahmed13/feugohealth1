@@ -1,36 +1,96 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-export default function Customer({ setCustomerDetails, customerDetails }) {
+function Customer({
+  setCustomers,
+  customers,
+  activeCustomerIndex,
+  setActiveCustomerIndex,
+  editingQuotation,
+}) {
   const navigate = useNavigate();
-  const reactLocation = useLocation();
-  // Define state for each form field
-  const [customerName, setCustomerName] = useState('');
-  const [date, setDate] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [location, setLocation] = useState('');
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [customerDetails, setCustomerDetails] = useState({
+    customerName: "",
+    date: "",
+    phoneNumber: "",
+    location: "",
+    email: "",
+  });
 
   useEffect(() => {
-    if (customerDetails) {
-      setCustomerName(customerDetails.customerName || '');
-      setDate(customerDetails.date || '');
-      setPhoneNumber(customerDetails.phoneNumber || '');
-      setLocation(customerDetails.location || '');
-      setEmail(customerDetails.email || '');
+    if (editingQuotation && activeCustomerIndex !== null) {
+      // Load existing customer details
+      const existingDetails = customers[activeCustomerIndex].customerDetails;
+      setCustomerDetails(existingDetails);
+    } else {
+      // Reset details for new quotation
+      setCustomerDetails({
+        customerName: "",
+        date: "",
+        phoneNumber: "",
+        location: "",
+        email: "",
+      });
     }
-  }, [customerDetails]);
+  }, [activeCustomerIndex, editingQuotation, customers]);
+
+  const navigateNext = () => {
+    if (location?.state?.showQuotation) {
+      navigate("/addon", { state: { showQuotation: true } });
+    } else {
+      navigate("/system"); // Default navigation to System
+    }
+  };
 
   const onSubmit = (e) => {
-    e.preventDefault(); 
-    const data = { customerName, date, phoneNumber, location, email };
-    const navigationState = { customerDetails: data, showQuotation: reactLocation.state?.showQuotation };
-    setCustomerDetails(data);
-    if(reactLocation.state?.showQuotation) {
-      navigate("/addon", { state: navigationState });
+    e.preventDefault();
+    const updatedCustomer = {
+      ...customers[activeCustomerIndex],
+      customerDetails,
+    };
+
+    if (editingQuotation) {
+      // Update existing customer
+      setCustomers(
+        customers.map((cust, idx) =>
+          idx === activeCustomerIndex ? updatedCustomer : cust
+        )
+      );
     } else {
-      navigate("/system");
+      // Add new customer
+      const newCustomer = {
+        customerDetails,
+        systemItems: [
+          {
+            selectedSystem: "",
+            selectedSharing: "",
+            selectedDimension: "",
+            quantity: 1,
+            price: 0,
+          },
+        ],
+        addOnItems: [
+          {
+            selectedCategory: "",
+            selectedItem: "",
+            quantity: 1,
+            price: 0,
+          },
+        ],
+        quotationNumber: null,
+      };
+      setCustomers([...customers, newCustomer]);
+      setActiveCustomerIndex(customers.length); // Set new customer as active
     }
+    navigateNext(); // Use the new navigation function
+  };
+
+  const handleChange = (e) => {
+    setCustomerDetails({
+      ...customerDetails,
+      [e.target.name]: e.target.value,
+    });
   };
 
   return (
@@ -40,46 +100,66 @@ export default function Customer({ setCustomerDetails, customerDetails }) {
         onSubmit={onSubmit}
         className="flex flex-col space-y-4 p-6 max-w-lg w-full bg-white rounded shadow-md"
       >
-        <input
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          placeholder="Customer Name"
-          className="p-2 border border-gray-300 rounded"
-          required
-          maxLength="50"
-        />
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-          min={new Date().toISOString().split("T")[0]}
-          required
-        />
-        <input
-          type="number"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          placeholder="Phone Number"
-          className="p-2 border border-gray-300 rounded"
-          required
-          pattern="^[0-9]{10}$"
-        />
-        <input
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="Location"
-          className="p-2 border border-gray-300 rounded"
-          required
-        />
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          className="p-2 border border-gray-300 rounded"
-          required
-        />
+        <div className="flex items-center space-x-2">
+          <label className="w-32">Customer Name:</label>
+          <input
+            name="customerName"
+            value={customerDetails.customerName}
+            onChange={handleChange}
+            placeholder="Customer Name"
+            className="p-2 border border-gray-300 rounded flex-1"
+            required
+            maxLength="50"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <label className="w-32">Date:</label>
+          <input
+            name="date"
+            type="date"
+            value={customerDetails.date}
+            onChange={handleChange}
+            className="p-2 border border-gray-300 rounded flex-1"
+            min={new Date().toISOString().split("T")[0]}
+            required
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <label className="w-32">Phone Number:</label>
+          <input
+            name="phoneNumber"
+            type="number"
+            value={customerDetails.phoneNumber}
+            onChange={handleChange}
+            placeholder="Phone Number"
+            className="p-2 border border-gray-300 rounded flex-1"
+            required
+            pattern="^[0-9]{10}$"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <label className="w-32">Location:</label>
+          <input
+            name="location"
+            value={customerDetails.location}
+            onChange={handleChange}
+            placeholder="Location"
+            className="p-2 border border-gray-300 rounded flex-1"
+            required
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <label className="w-32">Email:</label>
+          <input
+            name="email"
+            type="email"
+            value={customerDetails.email}
+            onChange={handleChange}
+            placeholder="Email"
+            className="p-2 border border-gray-300 rounded flex-1"
+            required
+          />
+        </div>
         <button
           type="submit"
           className="p-2 bg-yellow-500 text-white rounded cursor-pointer hover:bg-yellow-400"
@@ -90,3 +170,5 @@ export default function Customer({ setCustomerDetails, customerDetails }) {
     </div>
   );
 }
+
+export default Customer;

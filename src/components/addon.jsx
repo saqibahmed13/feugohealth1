@@ -8,11 +8,22 @@ import SelectSearch from 'react-select-search';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // eslint-disable-next-line react/prop-types
-export default function Addon({ systemItems, addOnItems, setSystemItems, setAddOnItems, customerDetails }) {
+export default function Addon({ customer, handleCustomerUpdate }) {
   const [components, setComponents] = useState({});
   const [showQuotation, setShowQuotation] = useState(false);
+  console.log("showQuotation", showQuotation)
   const navigate = useNavigate();
   const location = useLocation();
+  const [addOnItems, setAddOnItems] = useState(customer?.addOnItems || [{
+    selectedCategory: '',
+    selectedSubCategory: '',
+    selectedItem: '',
+    selectedSize: '',
+    selectedOption: '',
+    selectedDiameter: '',
+    quantity: 1,
+    price: null,
+  }]);
 
   const handleBack = () => {
     navigate("/system");
@@ -179,6 +190,19 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
     fetchData();
   }, [location.state]);
 
+  useEffect(() => {
+    setAddOnItems(customer?.addOnItems || [{
+      selectedCategory: '',
+      selectedSubCategory: '',
+      selectedItem: '',
+      selectedSize: '',
+      selectedOption: '',
+      selectedDiameter: '',
+      quantity: 1,
+      price: null,
+    }]);
+  }, []);
+
   // Recalculate price logic
   const calculatePriceForAddon = (item) => {
     const {
@@ -330,12 +354,12 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
   const updateQuantity = (index, value, type) => {
     const validQty = parseInt(value, 10) || 1;
     if (type === 'system') {
-      const sysCopy = [...systemItems];
+      const sysCopy = [...customer.systemItems];
       sysCopy[index].quantity = validQty;
       if (sysCopy[index].unitPrice) {
         sysCopy[index].price = sysCopy[index].unitPrice * validQty;
       }
-      setSystemItems(sysCopy);
+      handleCustomerUpdate({ ...customer, systemItems: sysCopy });
     } else {
       const addOnCopy = [...addOnItems];
       addOnCopy[index].quantity = validQty;
@@ -383,36 +407,37 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       }
     }
   };
-
-  const handleGenerateQuotation = () => {
-    setShowQuotation(true);
-    setAddOnItems(prev => {
-      return prev.map(item => ({
-        ...item,
-        quotationNumber: generateUniqueNumber()
-      }));
-    });
-  };
   
   const generateUniqueNumber = () => {
     return Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
   };
 
+  const handleGenerateQuotation = () => {
+    const uniqueNumber = generateUniqueNumber();
+    if (!customer?.quotationNumber) {
+      const updatedCustomer = {
+        ...customer,
+        quotationNumber: uniqueNumber, // Assign a new quotation number
+      };
+      handleCustomerUpdate(updatedCustomer); // This will trigger the useEffect in App to save to localStorage
+    }
+    setShowQuotation(true);
+  };
 
   const exportToExcel = () => {
    
     const data = [];
 
-    data.push(['QUOTATION NUMBER:', addOnItems[addOnItems.length - 1]?.quotationNumber ?? 'N/A']); 
+    data.push(['QUOTATION NUMBER:', customer?.quotationNumber ?? 'N/A']); 
     data.push([]); // Empty row for spacing
 
     // Add Customer Details Header
     data.push(['CUSTOMER DETAILS']);
-    data.push(['Customer Name:', customerDetails.customerName || '']);
-    data.push(['Date:', customerDetails.date || '']);
-    data.push(['Phone Number:', customerDetails.phoneNumber || '']);
-    data.push(['Location:', customerDetails.location || '']);
-    data.push(['Email:', customerDetails.email || '']);
+    data.push(['Customer Name:', customer?.customerDetails?.customerName || '']);
+    data.push(['Date:', customer?.customerDetails?.date || '']);
+    data.push(['Phone Number:', customer?.customerDetails?.phoneNumber || '']);
+    data.push(['Location:', customer?.customerDetails?.location || '']);
+    data.push(['Email:', customer?.customerDetails?.email || '']);
     data.push([]); 
 
     // Combined header for System Items and Add-Ons
@@ -420,7 +445,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
     data.push(['Type', 'Component/System', 'Size/Option/Diameter', 'Sharing Type', 'Quantity', 'Price']);
 
     // system items and addOn items in a single table
-    systemItems.forEach((item) => {
+    customer?.systemItems?.forEach((item) => {
       if (item.selectedSystem && item.selectedDimension && item.quantity) {
         data.push([
           'System',
@@ -451,7 +476,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
 
     // grand total
     const grandTotal =
-      systemItems.reduce((acc, cur) => acc + (cur.price || 0), 0) +
+      customer.systemItems.reduce((acc, cur) => acc + (cur.price || 0), 0) +
       addOnItems.reduce((acc, cur) => acc + (cur.price || 0), 0);
 
     data.push(['', '', '', '', 'Grand Total', grandTotal]);
@@ -613,6 +638,11 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       alert('Cannot delete the default add-on item.');
     }
   };
+
+  useEffect(() => {
+    // When addOnItems state changes, update the customer's add-on items in the main state
+    handleCustomerUpdate({ ...customer, addOnItems });
+  }, [addOnItems]);
 
   return (
   
@@ -807,7 +837,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
       {/* Quotation Table */}
       {showQuotation && (
         <div style={styles.tableContainer}>
-          <h2 style={styles.tableTitle}>Quotation No #{addOnItems[addOnItems.length - 1].quotationNumber}</h2>
+          <h2 style={styles.tableTitle}>Quotation No #{customer.quotationNumber}</h2>
           <table style={styles.table}>
             <thead>
               <tr>
@@ -819,7 +849,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
               </tr>
             </thead>
             <tbody>
-              {systemItems.filter(item => item.selectedSystem && item.selectedDimension && item.quantity).map((item, idx) => (
+              {customer.systemItems.filter(item => item.selectedSystem && item.selectedDimension && item.quantity).map((item, idx) => (
                 <tr key={`system-${idx}`}>
                   <td style={styles.td}>System</td>
                   <td style={styles.td}>{item.selectedSystem}</td>
@@ -862,7 +892,7 @@ export default function Addon({ systemItems, addOnItems, setSystemItems, setAddO
               <tr style={styles.totalRow}>
                 <td style={styles.td} colSpan={4}>Grand Total</td>
                 <td style={styles.td}>
-                  {systemItems.reduce((sum, i) => sum + (i.price || 0), 0) +
+                  {customer.systemItems.reduce((sum, i) => sum + (i.price || 0), 0) +
                     addOnItems.reduce((sum, i) => sum + (i.price || 0), 0)}
                 </td>
               </tr>

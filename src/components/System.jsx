@@ -8,44 +8,35 @@ import * as XLSX from 'xlsx';
 // import 'react-select-search/style.css';
 import "./System.css";
 
+const defaultItem = {
+    selectedSystem: '',
+    selectedSharing: '',
+    dimensions: [],
+    selectedDimension: '',
+    quantity: 1,
+    unitPrice: null,
+    price: null,
+};
 
-const System = ({ systemItems, setSystemItems, customerDetails }) => {
-   
-
+const System = ({ customer, handleCustomerUpdate }) => {
     const [rows, setRows] = useState([]);
     const [systems, setSystems] = useState([]);
     const [showQuotation, setShowQuotation] = useState(false);
     const navigate = useNavigate();
-    const [items, setItems] = useState(
-        systemItems && systemItems.length > 0
-            ? systemItems
-            : [
-                {
-                    selectedSystem: '',
-                    selectedSharing: '',
-                    dimensions: [],
-                    selectedDimension: '',
-                    quantity: 1,
-                    unitPrice: null,
-                    price: null,
-                    quotationNumber: null,
-                },
-            ]
-    );
+    
+    // Initialize local state from customer's systemItems (or default item) only on mount.
+    const [items, setItems] = useState(customer?.systemItems || [defaultItem]);
 
     const handleNext = () => {
         navigate('/addon');
     };
 
-    useEffect(() => {
-        if (systemItems && systemItems.length > 0) {
-            setItems(systemItems);
-        }
-    }, [systemItems]);
+    // Removed the effect that continuously updates items from customer?.systemItems
+    // because it was causing an infinite loop.
 
     useEffect(() => {
-        setSystemItems(items);
-    }, [items]);
+        fetchData();
+    }, []);
 
     const canNavigate = () => {
         return items.every(item => item.selectedSystem && item.selectedSharing && item.selectedDimension && item.price !== null);
@@ -61,7 +52,6 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
         if (items.length > 1) { // Prevent deletion if only one item exists
             const updatedItems = items.filter((_, idx) => idx !== index);
             setItems(updatedItems);
-            setSystemItems(updatedItems);
         } else {
             alert('Cannot delete the default item.');
         }
@@ -92,10 +82,6 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
             console.error(error);
         }
     }
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
@@ -146,32 +132,24 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
     };
 
     const addItem = () => {
-        const lastItem = items[items.length - 1];
-        
-        // Check if the last item has been fully completed (selected system, sharing, dimension, and price)
-        if (lastItem.selectedSystem && lastItem.selectedSharing && lastItem.selectedDimension && lastItem.price !== null) {
+        if (!items) {
+            console.error('Items is undefined or null');
+            return;
+        }
+
+        const lastItem = items.length > 0 ? items[items.length - 1] : undefined;
+
+        // Check if the last item has been fully completed
+        if (lastItem?.selectedSystem && lastItem?.selectedSharing && lastItem?.selectedDimension && lastItem?.price !== null) {
             setItems([
                 ...items,
-                {
-                    selectedSystem: '',
-                    selectedSharing: '',
-                    dimensions: [],
-                    selectedDimension: '',
-                    quantity: 1,
-                    unitPrice: null,
-                    price: null,
-                },
+                { ...defaultItem },
             ]);
         } else {
-            alert(`Please add Item ${items.length} before adding Item ${items.length + 1}`);
+            alert(`Please complete Item ${items.length} before adding another item.`);
         }
     };
 
-    const generateUniqueNumber = () => {
-        return Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit number
-      };
-    
-     
     const updateQuantity = (index, value) => {
         const newItems = [...items];
         const newQuantity = Math.max(1, parseInt(value) || 1);
@@ -188,42 +166,40 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
     const exportToExcel = () => {
         const data = [];
     
-        data.push(['QUOTATION NUMBER:', systemItems[systemItems.length - 1]?.quotationNumber ?? 'N/A']); 
+        data.push(['QUOTATION NUMBER:', customer?.quotationNumber ?? 'N/A']); 
         data.push([]); // Empty row for spacing
-    
-        // Add Customer Details Header
+
+        // Customer Details Header
         data.push(['CUSTOMER DETAILS']);
-        data.push(['Customer Name:', customerDetails.customerName || '']);
-        data.push(['Date:', customerDetails.date || '']);
-        data.push(['Phone Number:', customerDetails.phoneNumber || '']);
-        data.push(['Location:', customerDetails.location || '']);
-        data.push(['Email:', customerDetails.email || '']);
+        data.push(['Customer Name:', customer?.customerDetails.customerName || '']);
+        data.push(['Date:', customer?.customerDetails.date || '']);
+        data.push(['Phone Number:', customer?.customerDetails.phoneNumber || '']);
+        data.push(['Location:', customer?.customerDetails.location || '']);
+        data.push(['Email:', customer?.customerDetails.email || '']);
         data.push([]); 
     
-        // Combined header for System Items and Add-Ons
+        // Header for System Items and Add-Ons
         data.push(['ITEM DETAILS']);
         data.push(['Type', 'Component/System', 'Size/Option/Diameter', 'Sharing Type', 'Quantity', 'Price']);
     
-        // system items and addOn items in a single table
-        systemItems.forEach((item) => {
+        items.forEach((item) => {
           if (item.selectedSystem && item.selectedDimension && item.quantity) {
             data.push([
               'System',
               item.selectedSystem,
               item.selectedDimension,
-              item.selectedSharing || '', // Adding Sharing Type for system items
+              item.selectedSharing || '',
               item.quantity,
               item.price || 0,
             ]);
           }
         });
     
-        // Calculate grand total
-        const grandTotal = systemItems.reduce((acc, cur) => acc + (cur.price || 0), 0);
+        const grandTotal = items.reduce((acc, cur) => acc + (cur.price || 0), 0);
     
         data.push(['', '', '', '', 'Grand Total', grandTotal]);
     
-        // create worksheet/book
+        // Create worksheet and workbook
         const ws = XLSX.utils.aoa_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Quotation');
@@ -231,7 +207,11 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'quotation.xlsx');
     };
-   
+
+    // Update parent when local items change.
+    useEffect(() => {
+        handleCustomerUpdate({ ...customer, systemItems: items });
+    }, [items]);
 
     return (
         <div className="container">
@@ -239,125 +219,108 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
 
             {!showQuotation && (
                 <>
-                {items.map((item, index) => (
-                <div key={index} className="item-container">
-                    <h2 className="item-title">Item {index + 1}</h2>
+                {items?.map((item, index) => (
+                    <div key={index} className="item-container">
+                        <h2 className="item-title">Item {index + 1}</h2>
 
-                    {/* System Dropdown */}
-                    <div className="dropdown-container">
-                        <label htmlFor={`system-select-${index}`} className="label">Select System:</label>
-                        <SelectSearch
-                            id={`system-select-${index}`}
-                            value={item.selectedSystem}
-                            onChange={(value) => handleItemChange(index, 'selectedSystem', value)}
-                            options={systems.map(system => ({ value: system, name: system }))}
-                            search
-                            placeholder="-- Select System --"
-                        />
+                        {/* System Dropdown */}
+                        <div className="dropdown-container">
+                            <label htmlFor={`system-select-${index}`} className="label">Select System:</label>
+                            <SelectSearch
+                                id={`system-select-${index}`}
+                                value={item.selectedSystem}
+                                onChange={(value) => handleItemChange(index, 'selectedSystem', value)}
+                                options={systems.map(system => ({ value: system, name: system }))}
+                                search
+                                placeholder="-- Select System --"
+                            />
+                        </div>
+
+                        {/* Sharing Type Dropdown */}
+                        {
+                            <div className="dropdown-container">
+                                <label htmlFor={`sharing-select-${index}`} className="label">Select Sharing Type:</label>
+                                <SelectSearch
+                                    id={`sharing-select-${index}`}
+                                    value={item.selectedSharing}
+                                    onChange={(value) => handleItemChange(index, 'selectedSharing', value)}
+                                    options={[
+                                        { value: 'Sharing', name: 'Sharing' },
+                                        { value: 'Non-Sharing', name: 'Non-Sharing' }
+                                    ]}
+                                    search
+                                    placeholder="-- Select Sharing Type --"
+                                />
+                            </div>
+                        }
+
+                        {/* Dimension Dropdown */}
+                        {
+                            <div className="dropdown-container">
+                                <label htmlFor={`dimension-select-${index}`} className="label">Select Dimension:</label>
+                                <SelectSearch
+                                    id={`dimension-select-${index}`}
+                                    value={item.selectedDimension}
+                                    onChange={(value) => handleItemChange(index, 'selectedDimension', value)}
+                                    options={item.dimensions.map(dimension => ({ value: dimension, name: dimension }))}
+                                    search
+                                    placeholder="-- Select Dimension --"
+                                />
+                            </div>
+                        }
+
+                        {/* Quantity Input */}
+                        {
+                            <div className="input-container">
+                                <label htmlFor={`quantity-input-${index}`} className="label">Quantity:</label>
+                                <input
+                                    id={`quantity-input-${index}`}
+                                    type="number"
+                                    value={item.quantity}
+                                    onChange={(e) => updateQuantity(index, e.target.value)}
+                                    className="input"
+                                    min="1"
+                                />
+                            </div>
+                        }
+
+                        {/* Display Price */}
+                        {item.price !== null && (
+                            <div className="price-container">
+                                <p className="price-text">
+                                    <strong>Total Price:</strong> {item.price}
+                                </p>
+                            </div>
+                        )}
+
+                        {items.length > 1 && (
+                            <button onClick={() => deleteItem(index)} className='delete-btn'>Delete</button>
+                        )}
                     </div>
-
-                    {/* Sharing Type Dropdown */}
-                    {item.selectedSystem && (
-                        <div className="dropdown-container">
-                            <label htmlFor={`sharing-select-${index}`} className="label">Select Sharing Type:</label>
-                            <SelectSearch
-                                id={`sharing-select-${index}`}
-                                value={item.selectedSharing}
-                                onChange={(value) => handleItemChange(index, 'selectedSharing', value)}
-                                options={[
-                                    { value: 'Sharing', name: 'Sharing' },
-                                    { value: 'Non-Sharing', name: 'Non-Sharing' }
-                                ]}
-                                search
-                                placeholder="-- Select Sharing Type --"
-                            />
-                        </div>
-                    )}
-
-                    {/* Dimension Dropdown */}
-                    {item.selectedSharing && (
-                        <div className="dropdown-container">
-                            <label htmlFor={`dimension-select-${index}`} className="label">Select Dimension:</label>
-                            <SelectSearch
-                                id={`dimension-select-${index}`}
-                                value={item.selectedDimension}
-                                onChange={(value) => handleItemChange(index, 'selectedDimension', value)}
-                                options={item.dimensions.map(dimension => ({ value: dimension, name: dimension }))}
-                                search
-                                placeholder="-- Select Dimension --"
-                            />
-                        </div>
-                    )}
-
-                    {/* Quantity Input */}
-                    {item.selectedDimension && (
-                        <div className="input-container">
-                            <label htmlFor={`quantity-input-${index}`} className="label">Quantity:</label>
-                            <input
-                                id={`quantity-input-${index}`}
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => updateQuantity(index, e.target.value)}
-                                className="input"
-                                min="1"
-                            />
-                        </div>
-                    )}
-
-                    {/* Display Price */}
-                    {item.price !== null && (
-                        <div className="price-container">
-                            <p className="price-text">
-                                <strong>Total Price:</strong> {item.price}
-                            </p>
-                        </div>
-                    )}
-
-                    {items.length > 1 && (
-                        <button onClick={() => deleteItem(index)} className='delete-btn'>Delete</button>
-                    )}
-                </div>
-            ))} 
+                ))} 
             
-               
-
-            {/* Add More Button */}
-            <button onClick={addItem} className="button add-button">
-                Add More
-            </button>
-
-            {/* Next Button */}
-            {items.some((item) => item.price !== null) && (
-                <button onClick={() => { 
-                    goToAddon();
-                 handleNext();
-                }} className="button generate-button">
-                    Next
+                {/* Add More Button */}
+                <button onClick={addItem} className="button add-button">
+                    Add More
                 </button>
-            )}
 
-            {/* Generate Quotation Button */}
-            {/* {items.some(item => item.price !== null) && (
-                <button onClick={() => {
-                    setShowQuotation(true);
-                    setSystemItems(prev => {
-                        return prev.map(item => ({
-                            ...item,
-                            quotationNumber: generateUniqueNumber()
-                        }));
-                    });
-                }} className="button generate-button">
-                    Generate Quotation
-                </button>
-            )} */}
-            </> 
-        )} 
+                {/* Next Button */}
+                {items?.some((item) => item.price !== null) && (
+                    <button onClick={() => { 
+                        goToAddon();
+                        handleNext();
+                    }} className="button generate-button">
+                        Next
+                    </button>
+                )}
+                </>
+            )} 
 
             {/* Quotation Table */}
             {showQuotation && (
                 <div className="table-container">
                     <h2 className="table-title">Quotation</h2>
-                    <h2>Quotation No #{systemItems[systemItems?.length - 1]?.quotationNumber}</h2>
+                    <h2>Quotation No #{customer?.quotationNumber}</h2>
                     <table className="table">
                         <thead>
                             <tr>
@@ -397,9 +360,7 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
                             </tr>
                         </tbody>
                     </table>
-                    <button onClick={exportToExcel}>
-                        Export
-                    </button>
+                    <button onClick={exportToExcel}>Export</button>
                     {!showQuotation && (
                         <button onClick={() => setShowQuotation(false)}>Back</button>
                     )}
@@ -409,6 +370,6 @@ const System = ({ systemItems, setSystemItems, customerDetails }) => {
             )}
         </div>
     );
-} 
+}
 
 export default System;

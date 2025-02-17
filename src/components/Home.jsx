@@ -1,23 +1,35 @@
 import { Link, useNavigate } from "react-router-dom";
 
-export default function Home({ setActiveButton }) {
+function Home({ setActiveCustomerIndex, customers, setEditingQuotation }) {
   const navigate = useNavigate();
 
-  const handleManageQuotationClick = () => {
-    setActiveButton('/addon');
-    navigate('/customer', { state: { showQuotation: true } });
+  const handleNewQuotation = () => {
+    setActiveCustomerIndex(null); // Reset active customer index
+    setEditingQuotation(false); // Indicate we're creating a new quotation
+    navigate("/customer", { state: { showQuotation: false } });
+  };
+
+  const handleManageQuotations = () => {
+    navigate("/manage-quotations");
   };
 
   return (
     <div className="flex justify-around items-center h-screen">
-      <Link to="/customer" onClick={() => setActiveButton('/customer')}>
-        <h2 className="bg-orange-400 ml-20 p-20 rounded cursor-pointer hover:bg-orange-300">
-          New Quotation
-        </h2>
-      </Link>
-      <h2 className="bg-orange-400 mr-20 p-20 rounded cursor-pointer hover:bg-orange-300" onClick={handleManageQuotationClick}>
-        Manage Quotation
-      </h2>
+      <button
+        onClick={handleNewQuotation}
+        className="bg-orange-400 m-2 p-4 rounded cursor-pointer hover:bg-orange-300 text-white text-xl"
+
+      >
+        New Quotation
+      </button>
+      <button
+        onClick={handleManageQuotations}
+        className="bg-orange-500 m-2 p-4 rounded cursor-pointer hover:bg-orange-400 text-white text-xl"
+      >
+        Manage Quotations
+      </button>
     </div>
   );
 }
+
+export default Home;
